@@ -11,11 +11,11 @@ const ResponseManager = require('../config/response');
 const STATUS_CODE = require('../config/http_status_code');
 const timeConvert = require('../config/timeConvert');
 const logger = require('../config/winston');
-const { generateRefreshToken, generateAccessToken } = require('../utils/util');
 const { replaceS3toCloudFront } = require('../config/aws_s3');
-const { app } = require("firebase-admin");
-const { ObjectId } = require("mongodb");
 const { Appointment } = require("../model/Appointment");
+const {Chatroom} = require("../model/Chatroom");
+const {Chat} = require("../model/Chats");
+const {ObjectID, ObjectId} = require("mongodb");
 
 
 
@@ -48,7 +48,6 @@ const userController = {
     try {
       const { userId } = req.params
       const user = await User.findById(userId).lean();
-      user.user_profile_img = replaceS3toCloudFront(user.user_profile_img)
       ResponseManager.getDefaultResponseHandler(res)['onSuccess'](user, 'SUCCESS_OK', STATUS_CODE.SUCCESS_OK);
     } catch (error) {
       ResponseManager.getDefaultResponseHandler(res)['onError'](error, 'ClientErrorBadRequest', STATUS_CODE.ClientErrorBadRequest);
@@ -116,8 +115,11 @@ const userController = {
   },
   assignUserV2: async (req, res) => {
     try {
-      const { user_nickname, user_gender, user_weekday, user_schedule_time, user_address, user_latitude, user_longitude, fitness_center_id, device_token, user_introduce } = req.body;
+      const { user_nickname, user_gender, user_weekday, user_schedule_time, user_address, user_latitude, user_longitude, fitness_center_id, device_token, user_introduce, survey_candidates } = req.body;
       const locationId = await locationController.parseAddress(user_address);
+      console.log("-----------------------------------assignUser----------------------------------");
+      console.dir(req.body);
+      console.log("---------------------------------------------------------------------");
       const user = await User.create({
         // BODY for test
         user_name: req.user.social.name || "",
@@ -128,7 +130,7 @@ const userController = {
         user_schedule_time: user_schedule_time,
         user_weekday: user_weekday || null,
         user_gender: user_gender,
-        user_introduce: user_introduce,
+        user_introduce: user_introduce || "안녕하세요! 같이 운동해요 :)",
         fitness_center_id: fitness_center_id,
         user_latitude: user_latitude,
         user_longitude: user_longitude,
@@ -139,9 +141,24 @@ const userController = {
           device_token: [device_token],
           provider: req.user.social.firebase.sign_in_provider,
           firebase_info: JSON.parse(JSON.stringify(req.user.social))
-        }
+        },
+        survey_candidates: survey_candidates || ["633a75c0ad5ad46e4d0f81df"]
       });
-      user.user_profile_img = replaceS3toCloudFront(user.user_profile_img);
+      const dupl = await Chatroom.find({$or:[{
+          $and:[{chat_start_id: user._id},{chat_join_id: "6339147718df754a7873f48e"}]
+        },{
+          $and:[{chat_start_id: "6339147718df754a7873f48e"},{chat_join_id: user._id}]
+        }]});
+      if(dupl.length == 0){
+        const chatroom = await Chatroom.create({
+          chat_start_id: user._id,
+          chat_join_id: "6339147718df754a7873f48e"
+        });
+        const chat = await Chat.create({
+          chat_room_id:chatroom._id,
+          last_chat: "핏메이트에 오신 것을 환영합니다!"
+        });
+      }
       return ResponseManager.getDefaultResponseHandler(res)['onSuccess'](user, 'SuccessCreated', STATUS_CODE.SuccessCreated);
     } catch (error) {
       console.log(error);
@@ -211,13 +228,6 @@ const userController = {
     } catch (error) {
       console.log(error);
       ResponseManager.getDefaultResponseHandler(res)['onError'](error, 'ClientErrorBadRequest', STATUS_CODE.ClientErrorBadRequest);
-    }
-  },
-  refreshTokens: async (req, res) => {
-    try {
-
-    } catch (error) {
-      ResponseManager.getDefaultResponseHandler(res)['onError'](error, 'Token', STATUS_CODE.ClientErrorBadRequest);
     }
   },
 

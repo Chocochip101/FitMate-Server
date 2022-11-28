@@ -4,6 +4,7 @@ const ResponseManager = require('../config/response');
 const STATUS_CODE = require('../config/http_status_code');
 const {User} = require("../model/User");
 const {FitnessCenterReview} = require("../model/FitnessCenterReview");
+const {SurveyCandidates} = require("../model/SurveyCandidates");
 
 const visitorController = {
     getPosts: async (req, res) => {
@@ -117,6 +118,20 @@ const visitorController = {
             }
         }catch(error){
             ResponseManager.getDefaultResponseHandler(res)['onError'](error, 'Fitness Center Error', STATUS_CODE.ClientErrorBadRequest);
+        }
+    },
+    doTest: async (req, res)=>{
+        try{
+            const centers = await FitnessCenter.find();
+            let result = []
+            for(let i = 0; i < centers.length; ++i){
+                if(centers[i].fitness_longitude < centers[i].fitness_latitude){
+                    await FitnessCenter.findByIdAndUpdate(centers[i]._id, {fitness_longitude: centers[i].fitness_latitude, fitness_latitude:centers[i].fitness_longitude})
+                }
+            }
+            ResponseManager.getDefaultResponseHandler(res)['onSuccess'](result, 'SuccessOK', STATUS_CODE.SuccessOK);
+        }catch(error){
+
         }
     }
 }

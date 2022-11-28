@@ -169,6 +169,11 @@ paths:
                   format: ObjectId
                 device_token:
                   type: string
+                survey_candidates:
+                  type: array
+                  items:
+                    type: string
+                    format: ObjectId
       responses:
         '201':
           description: '`SUCCESS CREATED` returns created user document'
@@ -2598,7 +2603,12 @@ paths:
                               format: ObjectId
                             reviews:
                               type: array
-                              $ref: '#/components/schemas/fitnessCenterReview'
+                              items:
+                                $ref: '#/components/schemas/fitnessCenterReview'
+                            posts:
+                              type: array
+                              items:
+                                $ref: '#/components/schemas/post'
                       totalDocs:
                         type: number
                       limit:
@@ -2768,6 +2778,193 @@ paths:
                       nextPage:
                         type: number
                         format: integer
+        '400':
+          description: '`ClientErrorBadRequest`'
+  /v2/fitnesscenters/zoom:
+    get:
+      summary: 'Author:기호,피트니스 센터 줌 아웃 결과'
+      description: 'Author:기호, GET 방식으로 피트니스 센터 줌 아웃 결과'
+      tags:
+        - fitnesscenter
+      parameters:
+        - $ref: '#/components/parameters/authToken'
+      responses:
+        '200':
+          description: '`SUCCESS OK`'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      example:
+                        {
+                          "_id": "62c66fd24b8212e4674dbe2b",
+                          "count": 558,
+                          "location": [
+                            {
+                              "_id": "62c66fd24b8212e4674dbe2b",
+                              "location_name": "강남구",
+                              "location_latitude": 37.5161911303986,
+                              "location_longitude": 127.051960068024,
+                              "updatedAt": "2022-09-28T05:41:20.040Z"
+                            }
+                          ]
+                        }
+
+        '400':
+          description: '`ClientErrorBadRequest`'
+  /v2/fitnesscenters/info:
+    post:
+      summary: 'Author:기호, 피트니스 센터 상세 정보 등록'
+      description: 'Author:기호, POST 방식으로 피트니스 센터 상세 정보 등록'
+      tags:
+        - fitnesscenter
+      parameters:
+        - $ref: '#/components/parameters/authToken'
+      requestBody:
+        description: fitness center info object to be posted
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                center_id:
+                  type: string
+                  format: ObjectId
+                  description: References Fitnesscenter
+                male_trainer:
+                  type: number
+                  format: integer
+                female_trainer:
+                  type: number
+                  format: integer
+                introduce:
+                  type: string
+                  format: string
+                golf_program:
+                  type: object
+                  properties:
+                    existed:
+                      type: boolean
+                spinning:
+                  type: object
+                  properties:
+                    existed:
+                      type: boolean
+                gx_program:
+                  type: object
+                  properties:
+                    existed:
+                      type: boolean
+                center_area:
+                  type: number
+                  format: integer
+                phone_num:
+                  type: string
+                  format: string
+                pt_price:
+                  type: object
+                  properties:
+                    count:
+                      type: number
+                      format: integer
+                    one_price:
+                      type: number
+                      format: integer
+                price_for_day:
+                  type: number
+                  format: integer
+                price_for_1month:
+                  type: number
+                  format: integer
+                price_for_6month:
+                  type: number
+                  format: integer
+                price_for_year:
+                  type: number
+                  format: integer
+                parking:
+                  type: boolean
+                toilet:
+                  type: boolean
+                shower:
+                  type: boolean
+                back:
+                  type: array
+                  items:
+                    type: string
+                shoulder:
+                  type: array
+                  items:
+                    type: string
+                core:
+                  type: array
+                  items:
+                    type: string
+                arm:
+                  type: array
+                  items:
+                    type: string
+                chest:
+                  type: array
+                  items:
+                    type: string
+                lower_body:
+                  type: array
+                  items:
+                    type: string
+                etc:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: '`SUCCESS OK`'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/fitnesscenterInfo'
+        '400':
+          description: '`ClientErrorBadRequest`'
+  /v2/fitnesscenters/info/{fitnesscenterId}:
+    get:
+      summary: 'Author:기호,피트니스 센터 상세 정보'
+      description: 'Author:기호, GET 방식으로 피트니스 센터 상세 정보 검색'
+      tags:
+        - fitnesscenter
+      parameters:
+        - $ref: '#/components/parameters/authToken'
+        - $ref: '#/components/parameters/fitnesscenterId'
+      responses:
+        '200':
+          description: '`SUCCESS OK`'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    $ref: '#/components/schemas/fitnesscenterInfo'
         '400':
           description: '`ClientErrorBadRequest`'
 
@@ -3223,6 +3420,16 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/chatroom'
+                    example:
+                      {
+                        "_id": "633073c9b8ce571f3f447b18",
+                        "chat_start_id": "62d68b0843aefb57300fe342",
+                        "chat_join_id": "62f33946774a6b79dce0ad91",
+                        "is_deleted": false,
+                        "createdAt": "2022-09-25T15:29:13.505Z",
+                        "updatedAt": "2022-09-25T15:29:13.505Z",
+                        "last_chat": "상대방과 채팅을 시작하세요!"
+                      }
         '400':
           description: '`ClientErrorBadRequest`'
     post:
@@ -3288,6 +3495,16 @@ paths:
                   data:
                     type: object
                     $ref: '#/components/schemas/chatroom'
+                    example:
+                      {
+                        "_id": "633073c9b8ce571f3f447b18",
+                        "chat_start_id": "62d68b0843aefb57300fe342",
+                        "chat_join_id": "62f33946774a6b79dce0ad91",
+                        "is_deleted": false,
+                        "createdAt": "2022-09-25T15:29:13.505Z",
+                        "updatedAt": "2022-09-25T15:29:13.505Z",
+                        "last_chat": "상대방과 채팅을 시작하세요!"
+                      }
         '400':
           description: '`ClientErrorBadRequest`'
     delete:
@@ -3344,6 +3561,136 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/chatroom'
+                    example:
+                      {
+                        "_id": "633073c9b8ce571f3f447b18",
+                        "chat_start_id": {
+                          "user_weekday": [
+                            false,
+                            false,
+                            false,
+                            false,
+                            false,
+                            false,
+                            false
+                          ],
+                          "social": {
+                            "user_id": "GUpwd4HhSfYUPWeOVUvqtWePZzr1",
+                            "user_name": "",
+                            "provider": "password",
+                            "device_token": [
+                              "123"
+                            ],
+                            "firebase_info": {
+                              "iss": "https://securetoken.google.com/fitmate-cf118",
+                              "aud": "fitmate-cf118",
+                              "auth_time": 1658225787,
+                              "user_id": "GUpwd4HhSfYUPWeOVUvqtWePZzr1",
+                              "sub": "GUpwd4HhSfYUPWeOVUvqtWePZzr1",
+                              "iat": 1658225787,
+                              "exp": 1658229387,
+                              "email": "curl-test1@example.com",
+                              "email_verified": false,
+                              "firebase": {
+                                "identities": {
+                                  "email": [
+                                    "curl-test1@example.com"
+                                  ]
+                                },
+                                "sign_in_provider": "password"
+                              },
+                              "uid": "GUpwd4HhSfYUPWeOVUvqtWePZzr1"
+                            }
+                          },
+                          "_id": "62d68b0843aefb57300fe342",
+                          "user_email": "curl-test1@example.com",
+                          "user_address": "서울특별시 강남구 송정동 상무대로 312",
+                          "user_nickname": "CurlTestUser",
+                          "user_profile_img": "https://d1cfu69a4bd45f.cloudfront.net/profile_image/62d68b0843aefb57300fe342_2022_08_24_12_09_46.png",
+                          "user_schedule_time": 0,
+                          "user_fitness_part": [ ],
+                          "user_age": 0,
+                          "user_gender": true,
+                          "user_loc_bound": 3,
+                          "user_longitude": 127.093931057182,
+                          "user_latitude": 37.544182743129674,
+                          "location_id": "62c66fd24b8212e4674dbe2b",
+                          "is_deleted": false,
+                          "createdAt": "2022-07-19T10:44:24.258Z",
+                          "updatedAt": "2022-09-24T07:44:56.411Z",
+                          "fitness_center_id": "6316f3445f3a825466f07bda",
+                          "user_introduce": "",
+                          "blocked_users": [
+                            "62c66aef4b8212e4674dbe16",
+                            "62d96c328415a0a173c48bf9"
+                          ]
+                        },
+                        "chat_join_id": {
+                          "user_weekday": {
+                            "mon": false,
+                            "tue": false,
+                            "wed": true,
+                            "thu": true,
+                            "fri": true,
+                            "sat": false,
+                            "sun": false
+                          },
+                          "social": {
+                            "user_id": "6UFyTjgbV8QOb3QU9QSi7KvRnwc2",
+                            "user_name": "김규민",
+                            "provider": "google.com",
+                            "device_token": [
+                              "eFGWQk9PSAigCdGQKA-QMi:APA91bFYPLAJSbGZiZZnoeHzztVSX2BSI49BQMtdNSLQSPK-L7XOwtmbs18Md88qEjMh3XGT2T1IoCE3xrZPWSGGLLrIrrQuuKai4OaWyY9GYEjgF7NriRBKuHJjpqKKqQsF6_iQdGHq"
+                            ],
+                            "firebase_info": {
+                              "name": "김규민",
+                              "picture": "https://lh3.googleusercontent.com/a/AItbvmlwS9vKNY5hRNSx1qOzZGvM6QdFGVab0N9g2xiK=s96-c",
+                              "iss": "https://securetoken.google.com/fitmate-cf118",
+                              "aud": "fitmate-cf118",
+                              "auth_time": 1660107040,
+                              "user_id": "6UFyTjgbV8QOb3QU9QSi7KvRnwc2",
+                              "sub": "6UFyTjgbV8QOb3QU9QSi7KvRnwc2",
+                              "iat": 1660107040,
+                              "exp": 1660110640,
+                              "firebase": {
+                                "identities": {
+                                  "google": {
+                                    "com": [
+                                      "109244404712357875620"
+                                    ]
+                                  }
+                                },
+                                "sign_in_provider": "google.com"
+                              },
+                              "uid": "6UFyTjgbV8QOb3QU9QSi7KvRnwc2"
+                            }
+                          },
+                          "blocked_users": [ ],
+                          "_id": "62f33946774a6b79dce0ad91",
+                          "user_name": "김규민",
+                          "user_email": "",
+                          "user_address": "서울특별시 동대문구",
+                          "user_nickname": "규민민",
+                          "user_profile_img": "https://lh3.googleusercontent.com/a/AItbvmlwS9vKNY5hRNSx1qOzZGvM6QdFGVab0N9g2xiK=s96-c",
+                          "user_schedule_time": 1,
+                          "user_fitness_part": [ ],
+                          "user_age": 0,
+                          "user_gender": true,
+                          "user_loc_bound": 3,
+                          "user_longitude": 127.0446984,
+                          "user_latitude": 37.5036491,
+                          "location_id": "62da6939d66ea33ebc0bc9fc",
+                          "is_deleted": false,
+                          "createdAt": "2022-08-10T04:51:18.397Z",
+                          "updatedAt": "2022-09-18T09:36:09.355Z",
+                          "fitness_center_id": "6316f3445f3a825466f07bda",
+                          "user_introduce": ""
+                        },
+                        "is_deleted": false,
+                        "createdAt": "2022-09-25T15:29:13.505Z",
+                        "updatedAt": "2022-09-25T15:29:13.505Z",
+                        "last_chat": "상대방과 채팅을 시작하세요!"
+                      }
         '400':
           description: '`ClientErrorBadRequest`'
   /v2/chats/info/{chatroomId}:
@@ -3395,6 +3742,71 @@ paths:
                       appointment:
                         type: object
                         $ref: '#/components/schemas/appointment'
+                      last_chat:
+                        type: string
+        '400':
+          description: '`ClientErrorBadRequest`'
+  /v2/chats/chat/{chatroomId}:
+    patch:
+      summary: 'Author:기호, 특정 채팅방의 마지막 채팅 업데이트'
+      description: 'Patch 방식으로 특정 채팅방 조회'
+      tags:
+        - chats
+      parameters:
+        - $ref: '#/components/parameters/chatroomId'
+        - $ref: '#/components/parameters/authToken'
+      requestBody:
+        description: 마지막 채팅을 body로 받습니다..
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                last_chat:
+                  type: string
+      responses:
+        '200':
+          description: 특정 약속 정보
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  refresh:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      _id:
+                        type: string
+                        format: ObjectId
+                      chat_start_id:
+                        type: string
+                        format: ObjectId
+                        description: references User
+                      chat_join_id:
+                        type: string
+                        format: ObjectId
+                        description: references User
+                      is_deleted:
+                        type: boolean
+                        default: false
+                      createdAt:
+                        type: string
+                        format: date
+                      updatedAt:
+                        type: string
+                        format: date
+                      appointment:
+                        type: object
+                        $ref: '#/components/schemas/appointment'
+                      last_chat:
+                        type: string
         '400':
           description: '`ClientErrorBadRequest`'
 
@@ -3953,7 +4365,53 @@ paths:
                     $ref: '#/components/schemas/userTrace'
         '404':
           description: '`ClientErrorNotFound`'
+  /v2/trace/certificate:
+    post:
+      summary: 'Author:기호, 사용자 피트니스 센터 인증'
+      description: 'Author:기호, 사용자 피트니스 센터 인증'
+      tags:
+        - matching
+      requestBody:
+        description: POST 방식으로 특정 사용자 정보 등록
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user_longitude:
+                  type: number
+                  format: double
+                  description: 사용자 경도
+                user_latitude:
+                  type: number
+                  format: double
+                  description: 사용자 위도
+                fitnesscenterId:
+                  type: string
+                  format: ObjectId
+      responses:
+        '201':
+          description: '`SuccessCreated` 사용자 위치 정보 등록 완료'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  refresh:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      is_certificated:
+                        type: boolean
 
+        '404':
+          description: '`ClientErrorNotFound`'
   /v1/trace:
     post:
       summary: 'Author:규민, 사용자 위치 정보'
@@ -4269,6 +4727,112 @@ paths:
                         items:
                           type: object
                           $ref: '#/components/schemas/fitnessCenter'
+                    '404':
+                      description: '`ClientErrorNotFound`'
+        '400':
+          description: '`ClientErrorBadRequest`'
+
+  /v2/survey/candidates:
+    get:
+      summary: 'Author:기호, 모든 설문 후보 조회'
+      description: 'Author:기호, GET 방식으로 모든 설문 후보 조회'
+      tags:
+        - survey
+      parameters:
+        - $ref: '#/components/parameters/authToken'
+      responses:
+        '201':
+          description: '`SuccessOK`'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      $ref: '#/components/schemas/fitnessCenter'
+
+        '404':
+          description: '`ClientErrorNotFound`'
+    post:
+      tags:
+        - survey
+      summary: Author:기호, 설문조사 후보 생성
+      description: Author:기호, 설문조사 후보 생성.
+      parameters:
+        - $ref: '#/components/parameters/bannerId'
+      requestBody:
+        description: to Add candidate
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                survey_content:
+                  type: string
+      responses:
+        '200':
+          description: '`SuccessCreated`'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  refresh:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/survey'
+        '404':
+          description: '`ClientErrorNotFound`'
+  /v2/survey:
+    post:
+      tags:
+        - survey
+      summary: Author:기호, 사용자 설문조사 변경용 API
+      description: Author:기호, 사용자의 설문조사를 변경합니다.
+      parameters:
+        - $ref: '#/components/parameters/authToken'
+      requestBody:
+        description: to Ad
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                survey_content:
+                  type: string
+      responses:
+        '200':
+          description: '`SUCCESS OK`'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      docs:
+                        type: array
+                        items:
+                          type: object
+                          $ref: '#/components/schemas/survey'
                     '404':
                       description: '`ClientErrorNotFound`'
         '400':

@@ -9,7 +9,11 @@ const reviewController = require('./review');
 const { replaceS3toCloudFront } = require('../config/aws_s3');
 const mongoose = require('mongoose');
 var Schema = mongoose.Schema;
+const PostUserLocation = mongoose.model('FitMate',
+    new Schema({ url: String, text: String, id: Number}),
+    'PostUserLocation');
 const { originAgentCluster } = require('helmet');
+const {ObjectId} = require("mongodb");
 // cloudwatch
 
 const postController = {
@@ -62,10 +66,7 @@ const postController = {
       const {
         params: { userId },
       } = req;
-      const posts = await Post.find({ is_deleted: false, user_id: userId });
-      posts.forEach((post) => {
-        post.post_img = replaceS3toCloudFront(post.post_img)
-      })
+      const posts = await Post.find({$and: [{is_deleted: false}, {user_id: userId}]});
       ResponseManager.getDefaultResponseHandler(res)['onSuccess'](posts, 'SuccessOK', STATUS_CODE.SuccessOK);
     } catch (error) {
       ResponseManager.getDefaultResponseHandler(res)['onError'](error, 'ClientErrorNotFound', STATUS_CODE.ClientErrorNotFound);
@@ -176,7 +177,11 @@ const postController = {
   getAllPostsV2: async (req, res) => {
     try {
       let { page, limit = 10 } = req.query;
-
+      let user = await User.findById(req.user.id);
+      let blocked_list = [];
+      user.blocked_users.forEach((a) =>{
+        blocked_list.push(a.toString());
+      });
       if (req.query.page) {
         page = parseInt(req.query.page);
       }
@@ -205,31 +210,34 @@ const postController = {
         sort: { createdAt: -1 },
       };
       if(req.query.sort == 'distance'){
-        // const user = await User.findById(req.user.id);
-        // const PostUserLocation = mongoose.model('FitMate',
-        //     new Schema({ url: String, text: String, id: Number}),
-        //     'PostUserLocation');
-        // console.log(user.user_longitude, user.user_latitude);
-        // const result = await PostUserLocation.find({
-        //   fitnesscenter:{
-        //     location:
-        //         { $near :
-        //               {
-        //                 $geometry: { type: "Point",  coordinates: [ user.user_longitude, user.user_latitude ] },
-        //                 $minDistance: 1000,
-        //                 $maxDistance: 5000
-        //               }
-        //         }
-        //   }
-        // });
+        const user = await User.findById(req.user.id);
+        console.log(user.user_longitude, user.user_latitude);
 
-        // ResponseManager.getDefaultResponseHandler(res)['onSuccess'](result, 'SuccessOK', STATUS_CODE.SuccessOK);
-        await Post.paginate({is_deleted: false, user_id: { $ne: req.user.id }}, options, (err, result)=>{
-          result.docs.sort(() => Math.random() - 0.5);
-          ResponseManager.getDefaultResponseHandler(res)['onSuccess'](result, 'SuccessOK', STATUS_CODE.SuccessOK);
-        });
+        const result = await PostUserLocation.find({'fitnesscenter':{
+          location: {
+            $nearSphere: {
+              $geometry: {
+                type: 'Point',
+                geometry: [ user.user_longitude, user.user_latitude ]
+              },
+              $minDistance: 0,
+              $maxDistance: 10000
+            }
+          }
+        }});
+
+        ResponseManager.getDefaultResponseHandler(res)['onSuccess'](result, 'SuccessOK', STATUS_CODE.SuccessOK);
       }else{
-        await Post.paginate({is_deleted: false, user_id: { $ne: req.user.id }}, options, (err, result)=>{
+        await Post.paginate({
+          $and:[
+            {is_deleted: false},
+            {user_id:{ $ne: req.user.id }},
+            {user_id:{$nin: blocked_list }}
+          ]}, options, (err, result)=>{
+          // result.sort(() => Math.random() - 0.5);
+          console.log("result", result['docs']);
+          console.log(typeof result['docs']);
+          result['docs'].sort(() => Math.random() - 0.5);
           ResponseManager.getDefaultResponseHandler(res)['onSuccess'](result, 'SuccessOK', STATUS_CODE.SuccessOK);
         });
       }
@@ -262,7 +270,54 @@ const postController = {
       ResponseManager.getDefaultResponseHandler(res)['onError'](error, 'ClientErrorBadRequest', STATUS_CODE.ClientErrorBadRequest);
     }
   },
+  getMyPostV2: async (req, res) => {
+    try {
+      const {
+        params: { userId },
+      } = req;
 
+      let page = 1;
+      let limit = 10;
+      let options = {
+        page: page,
+        limit: limit,
+        populate:
+            [
+              {
+                path : 'user_id',
+                select : {user_nickname : 1, user_profile_img : 1}
+              },
+              {
+                path : 'promise_location',
+              }
+            ],
+        collation: {
+          locale: 'en',
+        },
+        sort: { createdAt: -1 },
+      };
+      // await Post.paginate({
+      //   $and:[
+      //     {is_deleted: false},
+      //     {user_id:{ $eq: userId }},
+      //   ]}, options, (err, result)=>{
+      //   console.log(result);
+      //   ResponseManager.getDefaultResponseHandler(res)['onSuccess'](result, 'SuccessOK', STATUS_CODE.SuccessOK);
+      // });
+
+      const posts = await Post.find({
+          $and:[
+             {is_deleted: false},
+             {user_id:{ $eq: userId }},
+           ]})
+          .populate('promise_location')
+          .populate('user_id');
+      console.log(posts);
+      ResponseManager.getDefaultResponseHandler(res)['onSuccess'](posts, 'SuccessOK', STATUS_CODE.SuccessOK);
+    } catch (error) {
+      ResponseManager.getDefaultResponseHandler(res)['onError'](error, 'ClientErrorNotFound', STATUS_CODE.ClientErrorNotFound);
+    }
+  },
 }
 
 module.exports = postController;

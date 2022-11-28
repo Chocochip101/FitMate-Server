@@ -3,14 +3,17 @@ const fitnesscenterRouter = express.Router();
 const fitnesscenterController = require('../../../controller/fitnesscenter');
 const {verifyUser} = require("../../../middleware/auth");
 
-
-fitnesscenterRouter.delete('/delete/:keyWord',verifyUser, fitnesscenterController.deleteFitnessCenterByKeyWord);
+fitnesscenterRouter.get('/zoom', verifyUser, fitnesscenterController.zoomFitnessCenter);
 
 fitnesscenterRouter.get('/search',verifyUser, fitnesscenterController.searchFitnessCenter);
 
 fitnesscenterRouter.get('/',verifyUser, fitnesscenterController.countUsersByFitnessCenter);
 
 fitnesscenterRouter.post('/', fitnesscenterController.writeOneFitnessCenter);
+
+fitnesscenterRouter.get('/info/:fitnesscenterId', fitnesscenterController.getOneFitnessCenterInfo);
+
+fitnesscenterRouter.post('/info', fitnesscenterController.writeOneFitnessCenterInfo);
 
 fitnesscenterRouter.get('/:fitnesscenterId',verifyUser, fitnesscenterController.getOneFitnessCenter);
 

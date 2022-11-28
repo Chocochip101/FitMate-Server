@@ -10,12 +10,15 @@ const userSchema = mongoose.Schema({
     select: false,
     default: ""
   },
-  user_email: String,
+  user_email: {
+    type: String
+  },
   // 데이터 파싱 필요
   user_address: String,
   user_nickname: {
     type: String,
-    required: true
+    required: true,
+    unique: true
   },
   user_profile_img: {
     type: String,
@@ -62,7 +65,7 @@ const userSchema = mongoose.Schema({
     type: ObjectId,
     ref: 'FitnessCenter',
     required: true,
-    default: '62c66fe24b8212e4674dbe2c'
+    default: '631d65a35c8fcf2a7116f0d7'
   },
   user_longitude: {
     type: Double,
@@ -81,7 +84,10 @@ const userSchema = mongoose.Schema({
     ref: 'User'
   }],
   social: {
-    user_id: String,
+    user_id: {
+      type: String,
+      unique: true
+    },
     user_name: String,
     provider: String,
     device_token: [String],
@@ -90,7 +96,15 @@ const userSchema = mongoose.Schema({
   is_deleted: {
     type: Boolean,
     default: false
-  }
+  },
+  is_certificated: {
+    type: Boolean,
+    default: false
+  },
+  survey_candidates: [{
+    type: ObjectId,
+    ref: 'SurveyCandidates'
+  }],
 }, {
   versionKey: false,
   timestamps: true,

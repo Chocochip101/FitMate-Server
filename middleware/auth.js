@@ -30,6 +30,7 @@ const publicLanding = async (req, res, next) => {
 const verifyUser = async (req, res, next) => {
 
     try {
+        console.dir(req.body);
         const token = req.header('Authorization').split(' ')[1];
         const decodeToken = await admin.auth().verifyIdToken(token);
         //토큰이 정상 복호화된 경우
@@ -64,7 +65,7 @@ const verifyUser = async (req, res, next) => {
  */
 const getUserValidByToken = async (Token) => {
     const userId = Token.uid || Token.user_id;
-    const users = await User.find({ "social.user_id": userId });
+    const users = await User.find({ $and:[{"social.user_id": userId}, {is_deleted: false}] });
     if (!users[0])
         return false;
     if (users[0] && !users[0]['is_deleted'])

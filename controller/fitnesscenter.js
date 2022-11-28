@@ -1,12 +1,14 @@
 const { FitnessCenter } = require('../model/FitnessCenter');
 const { User } = require('../model/User');
 const { FitnessCenterReview } = require('../model/FitnessCenterReview');
+const {FitnessCenterInfo} = require('../model/FitnessCenterInfo');
+const {Golf} = require('../model/Golf');
+const {GXExercise} = require('../model/GXExercise');
+const {Spinning} = require('../model/Spinning');
+const {Post} = require('../model/Post');
 const ResponseManager = require('../config/response');
 const STATUS_CODE = require('../config/http_status_code');
 const locationController = require('./location')
-const {Post} = require("../model/Post");
-const {ObjectId} = require("mongodb");
-const {token} = require("morgan");
 
 const fitnesscenterController = {
   /**
@@ -75,16 +77,23 @@ const fitnesscenterController = {
         const {
             center_name, center_address,fitness_longitude,fitness_latitude, kakao_url
         } = req.body;
-      const locId = await locationController.parseAddress(center_address);
-      const result = await FitnessCenter.create({
-        center_name: center_name,
-        center_address: center_address,
-        center_location: locId,
-        fitness_longitude: fitness_longitude,
-        fitness_latitude: fitness_latitude,
-        kakao_url: kakao_url
-      });
-      ResponseManager.getDefaultResponseHandler(res)['onSuccess'](result, 'SuccessCreated', STATUS_CODE.SuccessCreated);
+        if(fitness_longitude < fitness_latitude){
+          ResponseManager.getDefaultResponseHandler(res)['onError']({
+            fitness_longitude: fitness_longitude,
+            fitness_latitude: fitness_latitude
+          }, 'longitude latitude Error', STATUS_CODE.ClientErrorBadRequest);
+          return;
+        }
+        const locId = await locationController.parseAddress(center_address);
+        const result = await FitnessCenter.create({
+          center_name: center_name,
+          center_address: center_address,
+          center_location: locId,
+          fitness_longitude: fitness_longitude,
+          fitness_latitude: fitness_latitude,
+          kakao_url: kakao_url
+        });
+        ResponseManager.getDefaultResponseHandler(res)['onSuccess'](result, 'SuccessCreated', STATUS_CODE.SuccessCreated);
     } catch (error) {
       console.log(error);
       ResponseManager.getDefaultResponseHandler(res)['onError'](error, 'ClientErrorBadRequest', STATUS_CODE.ClientErrorBadRequest);
@@ -134,19 +143,28 @@ const fitnesscenterController = {
               {fitness_latitude: {$gt:first_latitude}},
               {fitness_latitude: {$lt:second_latitude}}
           ]}, options);
-
         result.userCount = [];
         for(let i = 0; i < result.docs.length; ++i){
+          result.docs[i] = result.docs[i].toObject();
+
+          // For CenterReviews
           let fitnessCenter = result.docs[i];
-          const reviews = await FitnessCenterReview.find({center_id: fitnessCenter._id});
-          result.docs[i].reviews = reviews;
+          let reviews = await FitnessCenterReview.find({center_id: fitnessCenter._id});
+          if(reviews){
+            result.docs[i].reviews = reviews;
+          }else{
+            result.docs[i].reviews = [];
+          }
           const searchResult = aggregate.find(o => o._id == fitnessCenter._id);
           if(searchResult){
             result.userCount.push({'centerId':searchResult['_id'], 'counts':searchResult['userCount']});
           }else{
             result.userCount.push({'centerId': fitnessCenter._id, 'counts': 0})
           }
-        };
+
+          // For Post Count
+          result.docs[i].posts = await Post.find({promise_location: fitnessCenter._id});
+        }
 
         ResponseManager.getDefaultResponseHandler(res)['onSuccess'](result, 'SuccessOK', STATUS_CODE.SuccessOK);
       }else{
@@ -174,9 +192,26 @@ const fitnesscenterController = {
       } = req;
       const fitnesscenter = await FitnessCenter.findById(fitnesscenterId);
       const users = await User.find({fitnesscenterId:fitnesscenterId});
-      ResponseManager.getDefaultResponseHandler(res)['onSuccess'](fitnesscenter, 'SuccessCreated', STATUS_CODE.SuccessCreated);
+      ResponseManager.getDefaultResponseHandler(res)['onSuccess'](fitnesscenter, 'SuccessOK', STATUS_CODE.SuccessOK);
     } catch (error) {
       console.log(error);
+      ResponseManager.getDefaultResponseHandler(res)['onError'](error, 'ClientErrorBadRequest', STATUS_CODE.ClientErrorBadRequest);
+    }
+  },
+  zoomFitnessCenter: async(req, res) => {
+    try {
+      const result = await FitnessCenter.aggregate([
+        {$group : {_id:"$center_location", count:{$sum:1}}},
+        {$lookup: {
+            from: 'locations',
+            localField: '_id',
+            foreignField: '_id',
+            as: 'location'
+          }
+        }
+      ]);
+      ResponseManager.getDefaultResponseHandler(res)['onSuccess'](result, 'SuccessCreated', STATUS_CODE.SuccessCreated);
+    } catch (error) {
       ResponseManager.getDefaultResponseHandler(res)['onError'](error, 'ClientErrorBadRequest', STATUS_CODE.ClientErrorBadRequest);
     }
   },
@@ -228,6 +263,77 @@ const fitnesscenterController = {
       }else{
         ResponseManager.getDefaultResponseHandler(res)['onSuccess']([], 'NO KEYWORD!', STATUS_CODE.SuccessNoContent);
       }
+    }catch(error){
+      ResponseManager.getDefaultResponseHandler(res)['onError'](error, 'ClientErrorBadRequest', STATUS_CODE.ClientErrorBadRequest);
+    }
+  },
+  getOneFitnessCenterInfo: async (req, res) =>{
+    try{
+      const centerInfo = await FitnessCenterInfo.findOne({center_id:req.params.fitnesscenterId});
+      ResponseManager.getDefaultResponseHandler(res)['onSuccess'](centerInfo, 'SuccessOK', STATUS_CODE.SuccessOK);
+    }catch(error){
+
+      ResponseManager.getDefaultResponseHandler(res)['onError'](error, 'ClientErrorBadRequest', STATUS_CODE.ClientErrorBadRequest);
+    }
+  },
+  writeOneFitnessCenterInfo: async (req, res) =>{
+    try{
+      const {
+        center_id,
+        male_trainer,
+        female_trainer,
+        introduce,
+        golf_program,
+        spinning,
+        gx_program,
+        center_area,
+        phone_num,
+        pt_price,
+        price_for_day,
+        price_for_1month,
+        price_for_6month,
+        price_for_year,
+        parking,
+        toilet,
+        shower,
+        back,
+        shoulder,
+        core,
+        arm,
+        chest,
+        lower_body,
+        etc
+      } = req.body;
+      const golf_object = await Golf.create(golf_program);
+      const gx_object= await GXExercise.create(gx_program);
+      const spinning_object = await Spinning.create(spinning);
+      const centerInfo = await FitnessCenterInfo.create({
+        center_id:center_id,
+        male_trainer:male_trainer,
+        female_trainer:female_trainer,
+        introduce:introduce,
+        golf_program:golf_object._id,
+        spinning: spinning_object._id,
+        gx_program:gx_object._id,
+        center_area:center_area,
+        phone_num:phone_num,
+        pt_price:pt_price,
+        price_for_day:price_for_day,
+        price_for_1month:price_for_1month,
+        price_for_6month:price_for_6month,
+        price_for_year:price_for_year,
+        parking:parking,
+        toilet:toilet,
+        shower:shower,
+        back:back,
+        shoulder:shoulder,
+        core: core,
+        arm: arm,
+        chest: chest,
+        lower_body:lower_body,
+        etc: etc
+      });
+      ResponseManager.getDefaultResponseHandler(res)['onSuccess'](centerInfo, 'SuccessCreated', STATUS_CODE.SuccessCreated);
     }catch(error){
       ResponseManager.getDefaultResponseHandler(res)['onError'](error, 'ClientErrorBadRequest', STATUS_CODE.ClientErrorBadRequest);
     }
